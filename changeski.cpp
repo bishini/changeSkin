@@ -46,34 +46,47 @@ void ChangeSki::sandSerial()
     //QByteArray byteArray = str.toUtf8();
     //const char *buf = byteArray.constData();
     //WriteSerialPort_(buf);//发送串口文字
+    QFile image(str);
+    if(!image.open(QIODevice::ReadOnly))
+    {
+        QMessageBox::warning(nullptr,"错误","图片打开失败");
+        return;
+    }
 
-    QConvertToRGB565 asd("E:/Misaka/build-changeSki-Desktop_Qt_5_12_12_MinGW_64_bit-Debug/debug/rgb.jpg","E:/Misaka/build-changeSki-Desktop_Qt_5_12_12_MinGW_64_bit-Debug/debug/data.bin");
+    QConvertToRGB565 asd(str,"E:/Misaka/build-changeSki-Desktop_Qt_5_12_12_MinGW_64_bit-Debug/debug/data.bin");
     QFile binFile(asd.binPath_);
     binFile.open(QIODevice::ReadOnly);       //设置文件只读模式
     QByteArray buffer = binFile.readAll();   //读取全部数据
 
     int sentBytes = 0;//发送大小
+    //首先发送指令擦除寄存器内存
+    char fileInformation[50];
+    sprintf_s(fileInformation,"FS_DLOAD(%d);\r\n",binFile.size());
+    //sprintf_s(fileInformation,"JUMP(1);\r\n",binFile.size());
+    WriteSerialPort_(fileInformation);//发送擦除指令
 
     //好像分为3个部分、目前的思路就是放在一个循环里面当发送的大小等于文件大小就是发送完成，退出循环，最好放在线程里面防止ui卡顿
     //1.检测是否发送完成，当发送的大小大于等于文件大小时就是发送完成
     percent = 0;
-
     while(1)
     {
         if(sentBytes >= binFile.size())
         {
+           WriteSerialPort_("RESET();\r\n");
            threadManger->stop();
            break;
         }
 
-        int chunkSize = qMin(static_cast<int>(1096),static_cast<int>(binFile.size() - sentBytes));
+        int chunkSize = qMin(static_cast<int>(1024),static_cast<int>(binFile.size() - sentBytes));
         QByteArray chunk = buffer.mid(sentBytes,chunkSize);
         WriteSerialPort_(chunk.constData());
+       QThread::msleep(100);
         sentBytes += chunkSize;
 
         //更新进度条
         percent = (sentBytes * 100) / binFile.size();
         emit upDateUI();
+        WriteSerialPort_("\r\n");
     }
 
   //  QMessageBox::information(this,"提示","字符总大小："+QString::number(buffer.size())+"文件大小为："+QString::number(binFile.size()));
