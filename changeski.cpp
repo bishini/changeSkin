@@ -1,6 +1,13 @@
-#include "changeski.h"
+﻿#include "changeski.h"
 
 ChangeSki *dlg = nullptr;
+
+typedef bool (*ReadSerialPort)(int);
+typedef void (*WriteSerialPort)(const char *,int) ;
+
+WriteSerialPort WriteSerialPort_;                  //写串口函数指针
+ReadSerialPort ReadSerialPort_;                    //读串口函数指针
+
 ChangeSki::ChangeSki(int i,QWidget *parent)
     :QWidget(parent),m_i(i),threadManger(nullptr),ui(new Ui::Form)
 {
@@ -28,6 +35,31 @@ void ChangeSki::showWindow()
     connect(this,&ChangeSki::upDateUI,this,[=](){
         ui->progressBar->setValue(percent);
     });
+
+    connect(ui->JUMP1,&QPushButton::clicked,this,[=](){
+        char buf[20];
+        sprintf_s(buf, "JUMP(0);\r\n");
+        WriteSerialPort_(buf,strlen(buf));//发送串口文字
+    });
+
+    connect(ui->JUMP2,&QPushButton::clicked,this,[=](){
+        char buf[20];
+        sprintf_s(buf, "JUMP(1);\r\n");
+        WriteSerialPort_(buf,strlen(buf));//发送串口文字
+    });
+
+    connect(ui->JUMP3,&QPushButton::clicked,this,[=](){
+        char buf[20];
+        sprintf_s(buf, "JUMP(2);\r\n");
+        WriteSerialPort_(buf,strlen(buf));//发送串口文字
+    });
+
+    connect(ui->CommandBTN,&QPushButton::clicked,this,[=](){
+        QString Commandstr( ui->CommectEdit->text());
+        char buf[30];
+        sprintf_s(buf,QString(Commandstr+";\r\n").toUtf8().data());
+        WriteSerialPort_(buf,strlen(buf));
+    });
 }
 
 ChangeSki::~ChangeSki()
@@ -35,10 +67,6 @@ ChangeSki::~ChangeSki()
     //DestroyChangeSki();
 }
 
-typedef bool (*ReadSerialPort)(const char *);
-typedef void (*WriteSerialPort)(const char *) ;
-WriteSerialPort WriteSerialPort_;                  //写串口函数指针
-ReadSerialPort ReadSerialPort_;                    //读串口函数指针
 
 void ChangeSki::sandSerial()
 {
@@ -53,43 +81,47 @@ void ChangeSki::sandSerial()
         return;
     }
 
-    QConvertToRGB565 asd(str,"E:/Misaka/build-changeSki-Desktop_Qt_5_12_12_MinGW_64_bit-Debug/debug/data.bin");
-    QFile binFile(asd.binPath_);
+    QConvertToRGB565 asd(str,"E:/Misaka/build-changeSki-Desktop_Qt_5_12_12_MinGW_64_bit-Debug/debug/output123.bin");
+    QFile binFile("E:/Misaka/build-changeSki-Desktop_Qt_5_12_12_MinGW_64_bit-Debug/debug/output.bin");
     binFile.open(QIODevice::ReadOnly);       //设置文件只读模式
-    QByteArray buffer = binFile.readAll();   //读取全部数据
-
+    //QByteArray buffer = binFile.readAll();   //读取全部数据
+    int totalSize = binFile.size();         //文件总大小
     int sentBytes = 0;//发送大小
     //首先发送指令擦除寄存器内存
     char fileInformation[50];
-    sprintf_s(fileInformation,"FS_DLOAD(%d);\r\n",binFile.size());
+    sprintf_s(fileInformation,"FS_DLOAD(%d);\r\n",totalSize);
     //sprintf_s(fileInformation,"JUMP(1);\r\n",binFile.size());
-    WriteSerialPort_(fileInformation);//发送擦除指令
-
+     WriteSerialPort_(fileInformation,strlen(fileInformation));//发送串口文字
+     //QMessageBox::information(NULL,"提示","字符总大小："+QString::number(binFile.size())+"文件大小为："+QString::number(binFile.size()));
+     if(ReadSerialPort_(100))
+     {
+         qDebug()<<"is ready to sand image bin file data\n";
+     }
     //好像分为3个部分、目前的思路就是放在一个循环里面当发送的大小等于文件大小就是发送完成，退出循环，最好放在线程里面防止ui卡顿
     //1.检测是否发送完成，当发送的大小大于等于文件大小时就是发送完成
     percent = 0;
-    while(1)
+    const int chunkSize = 16;
+    char buffer[chunkSize];
+    while(!binFile.atEnd())
     {
-        if(sentBytes >= binFile.size())
+        qint64 bytesRead = binFile.read(buffer,chunkSize);
+        if(bytesRead > 0)
         {
-           WriteSerialPort_("RESET();\r\n");
-           threadManger->stop();
-           break;
+            WriteSerialPort_(buffer,static_cast<int>(bytesRead));
+            sentBytes += chunkSize;
+
+            //更新进度条
+            percent = (sentBytes * 100) / binFile.size();
+            emit upDateUI();
+            QThread::msleep(10);
         }
-
-        int chunkSize = qMin(static_cast<int>(1024),static_cast<int>(binFile.size() - sentBytes));
-        QByteArray chunk = buffer.mid(sentBytes,chunkSize);
-        WriteSerialPort_(chunk.constData());
-       QThread::msleep(100);
-        sentBytes += chunkSize;
-
-        //更新进度条
-        percent = (sentBytes * 100) / binFile.size();
-        emit upDateUI();
-        WriteSerialPort_("\r\n");
     }
+    if(ReadSerialPort_(100))
+    {
+       qDebug() << "send file data succsessful!";
+    }       //这里试一下发送完成后，给客户端发送一个结束命令符
 
-  //  QMessageBox::information(this,"提示","字符总大小："+QString::number(buffer.size())+"文件大小为："+QString::number(binFile.size()));
+    threadManger->stop();
 }
 
 int CreateChangeSki(int i)

@@ -16,8 +16,8 @@
   <widget class="QPushButton" name="pushButton">
    <property name="geometry">
     <rect>
-     <x>240</x>
-     <y>250</y>
+     <x>390</x>
+     <y>60</y>
      <width>191</width>
      <height>91</height>
     </rect>
@@ -29,8 +29,8 @@
   <widget class="QLineEdit" name="lineEdit">
    <property name="geometry">
     <rect>
-     <x>170</x>
-     <y>120</y>
+     <x>20</x>
+     <y>80</y>
      <width>331</width>
      <height>31</height>
     </rect>
@@ -39,7 +39,7 @@
   <widget class="QProgressBar" name="progressBar">
    <property name="geometry">
     <rect>
-     <x>110</x>
+     <x>90</x>
      <y>410</y>
      <width>511</width>
      <height>23</height>
@@ -48,6 +48,62 @@
    <property name="value">
     <number>24</number>
    </property>
+  </widget>
+  <widget class="QPushButton" name="CommandBTN">
+   <property name="geometry">
+    <rect>
+     <x>210</x>
+     <y>280</y>
+     <width>80</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>指令测试</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="CommectEdit">
+   <property name="geometry">
+    <rect>
+     <x>300</x>
+     <y>280</y>
+     <width>171</width>
+     <height>20</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QWidget" name="">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>200</y>
+     <width>254</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item>
+     <widget class="QPushButton" name="JUMP1">
+      <property name="text">
+       <string>跳转1</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="JUMP2">
+      <property name="text">
+       <string>跳转2</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="JUMP3">
+      <property name="text">
+       <string>跳转3</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
   </widget>
  </widget>
  <resources/>

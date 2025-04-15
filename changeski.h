@@ -9,6 +9,7 @@
 #include "QtGlobal"
 #include "ThreadManager.h"
 #include "functional"
+#include "string"
 
 class CHANGESKI_EXPORT ChangeSki : public QWidget
 {
